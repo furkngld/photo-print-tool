@@ -6,7 +6,7 @@ Birden fazla fotoğrafı tek bir A4 sayfasına otomatik olarak yerleştirerek ko
 
 ![Uygulama Ekran Görüntüsü]
 
-<img width="507" height="975" alt="Screen Shot 2025-09-09 at 23 23 31" src="https://github.com/user-attachments/assets/55258d85-8f0a-4c22-b55a-6051e58b9b2f" />
+<img width="406" height="780" alt="Screen Shot 2025-09-09 at 23 23 31" src="https://github.com/user-attachments/assets/55258d85-8f0a-4c22-b55a-6051e58b9b2f" />
 
 
 ## 📝 Açıklama
