@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Yiğitler Karakolu Fotoğraf Yazdırma Aracı</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <style>
+        /* --- TEMEL AYARLAR VE DEĞİŞKENLER --- */
+        :root {
+            --primary-color: #6200EE;
+            --primary-variant: #3700B3;
+            --background-color: #f8f9fa;
+            --surface-color: #ffffff;
+            --on-primary: #ffffff;
+            --border-color: #e9ecef;
+            --shadow-light: 0 2px 8px rgba(0,0,0,0.1);
+            --shadow-medium: 0 4px 16px rgba(0,0,0,0.15);
+            --border-radius: 12px;
+        }
+
+        * {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background-color: var(--surface-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-medium);
+            overflow: hidden;
+        }
+
+        /* --- KART VE BUTON STİLLERİ --- */
+        .card { 
+            padding: 32px; 
+            background-color: var(--surface-color);
+        }
+
+        .card-title { 
+            margin: 0 0 8px 0; 
+            font-size: 32px; 
+            font-weight: 700; 
+            color: #2c3e50;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .card-subtitle { 
+            margin: 0 0 24px 0; 
+            color: #495057; 
+            text-align: center;
+            font-size: 18px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .section-title { 
+            margin: 0 0 20px 0; 
+            font-size: 22px; 
+            font-weight: 600; 
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .actions { 
+            display: flex; 
+            flex-direction: column;
+            gap: 20px; 
+            justify-content: center;
+            margin-bottom: 24px;
+            align-items: center;
+        }
+
+        .button { 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 18px 32px; 
+            border: none; 
+            border-radius: 12px; 
+            font-size: 18px; 
+            font-weight: 600; 
+            text-transform: none; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-light); 
+            background-color: #f8f9fa;
+            min-width: 200px;
+            width: 100%;
+            max-width: 320px;
+            text-decoration: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .button:hover { 
+            background-color: #e9ecef; 
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .button:active {
+            transform: translateY(0);
+            box-shadow: var(--shadow-light);
+        }
+
+        .button:disabled { 
+            cursor: not-allowed; 
+            background-color: #e9ecef; 
+            color: #adb5bd; 
+            box-shadow: none; 
+            transform: none;
+        }
+
+        .button.primary-button { 
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-variant)); 
+            color: var(--on-primary); 
+        }
+
+        .button.primary-button:hover { 
+            background: linear-gradient(135deg, var(--primary-variant), #1a0033);
+        }
+
+        .button .material-icons { 
+            margin-right: 12px; 
+            font-size: 24px; 
+        }
+
+        .status-bar { 
+            margin-top: 24px; 
+            padding: 20px; 
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            font-size: 16px; 
+            font-weight: 500;
+            color: #495057; 
+            text-align: center;
+            border: 2px solid var(--border-color);
+            line-height: 1.4;
+        }
+
+        /* --- ÖNİZLEME ALANI --- */
+        .content-area { 
+            display: flex; 
+            justify-content: center; 
+        }
+
+        #print-preview-container { 
+            width: 100%; 
+            max-width: 100%;
+            margin: 0;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .placeholder-text { 
+            color: #adb5bd; 
+            text-align: center; 
+            padding: 60px 20px;
+            font-size: 16px;
+        }
+
+        .preview-page { 
+            background-color: #f8f9fa; 
+            border: 2px solid var(--border-color); 
+            border-radius: 8px;
+            width: 100%; 
+            aspect-ratio: 210 / 297; 
+            padding: 20px; 
+            box-sizing: border-box;
+            margin: 0 auto;
+            max-width: 500px;
+            max-height: 700px;
+            box-shadow: var(--shadow-light);
+            overflow: hidden;
+        }
+
+        #print-preview-grid { 
+            display: grid; 
+            width: 100%; 
+            height: 100%; 
+            gap: 4px; 
+            background-color: white;
+            border-radius: 4px;
+            padding: 8px;
+            box-sizing: border-box;
+            overflow: hidden;
+            max-height: 100%;
+        }
+
+        /* ÖNİZLEME RESİMLERİ - A4 BOYUTUNA FIT */
+        #print-preview-grid img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            background-color: #fff;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* Grid hücrelerinin boyutlarını kontrol et */
+        #print-preview-grid {
+            max-height: 100%;
+            overflow: hidden;
+        }
+
+        /* --- YAZDIRMA ALANI --- */
+        #print-area {
+            display: none;
+        }
+
+        /* --- MOBILE PRINT BUTTON --- */
+        .mobile-print-info {
+            display: none;
+            background-color: #e8f5e8;
+            border: 2px solid #4caf50;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 15px;
+            font-size: 16px;
+            color: #2e7d32;
+            text-align: center;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        /* --- YAZDIRMA STİLLERİ --- */
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                box-sizing: border-box !important;
+            }
+
+            body, html {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                background: white !important;
+                font-size: 10pt !important;
+                overflow: hidden !important;
+            }
+
+            #print-area {
+                display: block !important;
+                width: 100% !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+            }
+
+            .print-page {
+                width: 100% !important;
+                height: 100vh !important;
+                page-break-after: always !important;
+                display: flex !important;
+                flex-direction: column !important;
+                box-sizing: border-box !important;
+                padding: 4mm !important;
+                background: white !important;
+                position: relative !important;
+                max-height: 100vh !important;
+                overflow: hidden !important;
+                break-inside: avoid !important;
+            }
+
+            .print-page:last-child,
+            .print-page:last-of-type {
+                page-break-after: avoid !important;
+                height: auto !important;
+                min-height: 100vh !important;
+                max-height: 100vh !important;
+            }
+
+            .print-page .image-grid {
+                display: grid !important;
+                width: 100% !important;
+                height: 100% !important;
+                flex: 1 !important;
+                gap: 1mm !important;
+                box-sizing: border-box !important;
+                max-height: calc(100vh - 8mm) !important;
+                overflow: hidden !important;
+                align-items: stretch !important;
+                justify-items: stretch !important;
+            }
+            
+            .print-page .image-container {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                overflow: hidden !important;
+                width: 100% !important;
+                height: 100% !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                box-sizing: border-box !important;
+                background: white !important;
+                border: 0.25pt solid #ddd !important;
+                margin: 0 !important;
+                padding: 0.5mm !important;
+                min-height: 0 !important;
+                max-width: 100% !important;
+                max-height: 100% !important;
+            }
+
+            .print-page .image-container img {
+                max-width: 100% !important;
+                max-height: 100% !important;
+                width: auto !important;
+                height: auto !important;
+                object-fit: contain !important;
+                display: block !important;
+                margin: 0 auto !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            /* Grid boyutları için özel sınıflar - Maximum A4 usage */
+            .print-page .grid-1x1 { 
+                grid-template-columns: 1fr !important; 
+                grid-template-rows: 1fr !important; 
+            }
+            .print-page .grid-1x2 { 
+                grid-template-columns: 1fr !important; 
+                grid-template-rows: 1fr 1fr !important; 
+            }
+            .print-page .grid-1x3 { 
+                grid-template-columns: 1fr !important; 
+                grid-template-rows: 1fr 1fr 1fr !important; 
+            }
+            .print-page .grid-2x2 { 
+                grid-template-columns: 1fr 1fr !important; 
+                grid-template-rows: 1fr 1fr !important; 
+            }
+            .print-page .grid-2x3 { 
+                grid-template-columns: 1fr 1fr !important; 
+                grid-template-rows: 1fr 1fr 1fr !important; 
+            }
+            .print-page .grid-3x3 { 
+                grid-template-columns: 1fr 1fr 1fr !important; 
+                grid-template-rows: 1fr 1fr 1fr !important; 
+            }
+            .print-page .grid-3x4 { 
+                grid-template-columns: 1fr 1fr 1fr !important; 
+                grid-template-rows: 1fr 1fr 1fr 1fr !important; 
+            }
+            .print-page .grid-3x5 { 
+                grid-template-columns: 1fr 1fr 1fr !important; 
+                grid-template-rows: 1fr 1fr 1fr 1fr 1fr !important; 
+            }
+            .print-page .grid-4x4 { 
+                grid-template-columns: 1fr 1fr 1fr 1fr !important; 
+                grid-template-rows: 1fr 1fr 1fr 1fr !important; 
+            }
+
+            /* Boş sayfaları tamamen engelle */
+            body::after,
+            html::after {
+                display: none !important;
+                content: none !important;
+            }
+            
+            /* Page break kontrolü */
+            @page:blank {
+                display: none !important;
+            }
+        }
+
+        /* --- MOBİL UYUMLULUK --- */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            .card {
+                padding: 25px;
+            }
+            
+            .card-title {
+                font-size: 28px;
+            }
+            
+            .card-subtitle {
+                font-size: 16px;
+                margin-bottom: 30px;
+            }
+            
+            .actions {
+                gap: 16px;
+                margin-bottom: 30px;
+            }
+            
+            .button {
+                padding: 20px 24px;
+                font-size: 16px;
+                min-width: 240px;
+                max-width: 100%;
+            }
+            
+            .preview-page {
+                max-width: 100%;
+                margin: 0 auto 20px auto;
+            }
+
+            .mobile-print-info {
+                display: block;
+                font-size: 15px;
+                padding: 16px;
+                margin-top: 20px;
+                border-radius: 12px;
+                background-color: #e3f2fd;
+                border: 2px solid #2196f3;
+                color: #1565c0;
+                font-weight: 500;
+            }
+            
+            .section-title {
+                font-size: 20px;
+                margin-bottom: 24px;
+            }
+            
+            .status-bar {
+                font-size: 15px;
+                padding: 18px;
+                margin-top: 20px;
+            }
+        }
+
+        /* Çok küçük ekranlar için */
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .card-title {
+                font-size: 24px;
+            }
+            
+            .card-subtitle {
+                font-size: 15px;
+            }
+            
+            .button {
+                padding: 18px 20px;
+                font-size: 15px;
+                min-width: 200px;
+            }
+            
+            .button .material-icons {
+                font-size: 22px;
+                margin-right: 10px;
+            }
+        }
+
+        /* --- TOUCH DEVİCE UYUMLULUĞU --- */
+        @media (hover: none) and (pointer: coarse) {
+            .button:hover {
+                background-color: #f8f9fa;
+                transform: none;
+                box-shadow: var(--shadow-light);
+            }
+
+            .button.primary-button:hover {
+                background: linear-gradient(135deg, var(--primary-color), var(--primary-variant));
+            }
+        }
+
+        /* --- iOS SAFARI ÖZELLEŞTİRMELERİ --- */
+        @supports (-webkit-appearance: none) {
+            .button {
+                -webkit-appearance: none;
+                appearance: none;
+            }
+            
+            input[type="file"] {
+                -webkit-appearance: none;
+                appearance: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header class="card no-print">
+            <h1 class="card-title">Fotoğraf Yazdırma Aracı</h1>
+            <p class="card-subtitle">Fotoğraf Yazdırma Aracı - Yazdırmak için fotoğraflarınızı seçin</p>
+            <div class="actions">
+                <label for="imageUpload" class="button primary-button">
+                    <i class="material-icons">add_photo_alternate</i>
+                    <span>Fotoğraf Seç</span>
+                </label>
+                <input type="file" id="imageUpload" accept="image/*" multiple hidden>
+                <button id="printButton" class="button" disabled>
+                    <i class="material-icons">print</i>
+                    <span>Yazdır</span>
+                </button>
+                <button id="clearButton" class="button" disabled>
+                    <i class="material-icons">clear_all</i>
+                    <span>Temizle</span>
+                </button>
+            </div>
+            <div id="status-bar" class="status-bar">
+                <span id="image-count-text">Henüz fotoğraf seçilmedi.</span>
+            </div>
+            <div class="mobile-print-info">
+                📱 Telefonunuzdan yazdırmak için yazdır butonuna basın ve paylaş menüsünü kullanın
+            </div>
+        </header>
+
+        <main class="content-area no-print">
+            <section id="print-preview-container" class="card">
+                <h2 class="section-title">Yazdırma Düzeni Önizlemesi</h2>
+                <div class="preview-page">
+                    <div id="print-preview-grid">
+                        <p class="placeholder-text">Sayfa düzeni burada gösterilecek.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <div id="print-area">
+            <div id="image-catalog" data-image-count="0"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- ELEMENTLERİ SEÇME ---
+            const imageUpload = document.getElementById('imageUpload');
+            const printButton = document.getElementById('printButton');
+            const clearButton = document.getElementById('clearButton');
+            const imageCountText = document.getElementById('image-count-text');
+            const printPreviewGrid = document.getElementById('print-preview-grid');
+            const imageCatalog = document.getElementById('image-catalog');
+
+            // --- MOBİL CİHAZ TESPİTİ ---
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isAndroid = /Android/.test(navigator.userAgent);
+
+            // Görsel verilerini saklamak için
+            let loadedImages = [];
+
+            // --- OLAY DİNLEYİCİLERİ ---
+            imageUpload.addEventListener('change', handleFileSelect);
+            printButton.addEventListener('click', handlePrint);
+            clearButton.addEventListener('click', clearAll);
+
+            // Touch event desteği
+            if (isMobile) {
+                document.addEventListener('touchstart', function() {}, {passive: true});
+                document.addEventListener('touchmove', function() {}, {passive: true});
+            }
+
+            // --- FONKSİYONLAR ---
+            function readFileAsPromise(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            function loadImageElement(src) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                    img.src = src;
+                });
+            }
+
+            async function handleFileSelect(event) {
+                const files = Array.from(event.target.files);
+                if (files.length === 0) return;
+
+                clearAll();
+                    imageCountText.textContent = `${files.length} fotoğraf işleniyor...`;                try {
+                    const imageUrls = await Promise.all(files.map(readFileAsPromise));
+                    
+                    // Görselleri Image elementleri olarak yükle
+                    loadedImages = await Promise.all(imageUrls.map(loadImageElement));
+                    
+                    // Yazdırma alanını sayfalara bölerek doldur
+                    createPrintPages(imageUrls);
+                    updateUIAfterProcessing(imageUrls);
+
+                } catch (error) {
+                    console.error("Dosya okunurken bir hata oluştu:", error);
+                    imageCountText.textContent = "Fotoğraflar okunurken bir hata oluştu.";
+                }
+            }
+            
+            function createPrintImage(imageUrl) {
+                const container = document.createElement('div');
+                container.className = 'image-container';
+                container.style.width = '100%';
+                container.style.height = '100%';
+                container.style.display = 'flex';
+                container.style.alignItems = 'center';
+                container.style.justifyContent = 'center';
+                container.style.overflow = 'hidden';
+                
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = '100%';
+                img.style.width = 'auto';
+                img.style.height = 'auto';
+                img.style.objectFit = 'contain';
+                
+                container.appendChild(img);
+                return container;
+            }
+
+            function createPrintPages(imageUrls) {
+                imageCatalog.innerHTML = ''; // Önce temizle
+                
+                const count = imageUrls.length;
+                let imagesPerPage, columns, rows, gridClass;
+                
+                // Her sayfa için maksimum görsel sayısını ve grid düzenini belirle
+                if (count === 1) { 
+                    imagesPerPage = 1; columns = 1; rows = 1; gridClass = 'grid-1x1';
+                } else if (count === 2) { 
+                    imagesPerPage = 2; columns = 1; rows = 2; gridClass = 'grid-1x2';
+                } else if (count === 3) { 
+                    imagesPerPage = 3; columns = 1; rows = 3; gridClass = 'grid-1x3';
+                } else if (count === 4) { 
+                    imagesPerPage = 4; columns = 2; rows = 2; gridClass = 'grid-2x2';
+                } else if (count <= 6) { 
+                    imagesPerPage = 6; columns = 2; rows = 3; gridClass = 'grid-2x3';
+                } else if (count <= 9) { 
+                    imagesPerPage = 9; columns = 3; rows = 3; gridClass = 'grid-3x3';
+                } else if (count <= 12) { 
+                    imagesPerPage = 12; columns = 3; rows = 4; gridClass = 'grid-3x4';
+                } else if (count <= 15) { 
+                    imagesPerPage = 15; columns = 3; rows = 5; gridClass = 'grid-3x5';
+                } else { 
+                    imagesPerPage = 16; columns = 4; rows = 4; gridClass = 'grid-4x4';
+                }
+
+                // Sayfa sayısını hesapla
+                const totalPages = Math.ceil(count / imagesPerPage);
+                
+                for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+                    // Her sayfa için container oluştur
+                    const pageContainer = document.createElement('div');
+                    pageContainer.className = 'print-page';
+                    
+                    const imageGrid = document.createElement('div');
+                    imageGrid.className = `image-grid ${gridClass}`;
+                    
+                    // Bu sayfadaki görsel sayısını hesapla
+                    const startIndex = pageIndex * imagesPerPage;
+                    const endIndex = Math.min(startIndex + imagesPerPage, count);
+                    const imagesInThisPage = endIndex - startIndex;
+                    
+                    // Son sayfa için grid düzenini optimize et
+                    if (pageIndex === totalPages - 1 && imagesInThisPage < imagesPerPage) {
+                        let finalGridClass = gridClass;
+                        if (imagesInThisPage === 1) finalGridClass = 'grid-1x1';
+                        else if (imagesInThisPage === 2) finalGridClass = 'grid-1x2';
+                        else if (imagesInThisPage === 3) finalGridClass = 'grid-1x3';
+                        else if (imagesInThisPage === 4) finalGridClass = 'grid-2x2';
+                        else if (imagesInThisPage <= 6) finalGridClass = 'grid-2x3';
+                        else if (imagesInThisPage <= 9) finalGridClass = 'grid-3x3';
+                        
+                        imageGrid.className = `image-grid ${finalGridClass}`;
+                    }
+                    
+                    // Bu sayfadaki görselleri ekle
+                    for (let i = startIndex; i < endIndex; i++) {
+                        const container = createPrintImage(imageUrls[i]);
+                        imageGrid.appendChild(container);
+                    }
+                    
+                    pageContainer.appendChild(imageGrid);
+                    imageCatalog.appendChild(pageContainer);
+                }
+            }
+
+            function updateUIAfterProcessing(imageUrls) {
+                const count = imageUrls.length;
+                printButton.disabled = false;
+                clearButton.disabled = false;
+                
+                // Grid düzenini dinamik olarak hesapla
+                let imagesPerPage, columns, rows, gridClass;
+                
+                if (count === 1) { 
+                    imagesPerPage = 1; columns = 1; rows = 1; gridClass = 'grid-1x1';
+                } else if (count === 2) { 
+                    imagesPerPage = 2; columns = 1; rows = 2; gridClass = 'grid-1x2';
+                } else if (count === 3) { 
+                    imagesPerPage = 3; columns = 1; rows = 3; gridClass = 'grid-1x3';
+                } else if (count === 4) { 
+                    imagesPerPage = 4; columns = 2; rows = 2; gridClass = 'grid-2x2';
+                } else if (count <= 6) { 
+                    imagesPerPage = 6; columns = 2; rows = 3; gridClass = 'grid-2x3';
+                } else if (count <= 9) { 
+                    imagesPerPage = 9; columns = 3; rows = 3; gridClass = 'grid-3x3';
+                } else if (count <= 12) { 
+                    imagesPerPage = 12; columns = 3; rows = 4; gridClass = 'grid-3x4';
+                } else if (count <= 15) { 
+                    imagesPerPage = 15; columns = 3; rows = 5; gridClass = 'grid-3x5';
+                } else { 
+                    imagesPerPage = 16; columns = 4; rows = 4; gridClass = 'grid-4x4';
+                }
+
+                const totalPages = Math.ceil(count / imagesPerPage);
+                imageCountText.textContent = `${count} adet fotoğraf seçildi. ${totalPages} sayfa yazdırılacak.`;
+                
+                updateGridLayout(imageUrls);
+
+                // Önizleme için grid düzenini ayarla
+                const previewCount = Math.min(count, imagesPerPage);
+                const previewRows = Math.ceil(previewCount / columns);
+                
+                printPreviewGrid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+                printPreviewGrid.style.gridTemplateRows = `repeat(${previewRows}, 1fr)`;
+                
+                // Grid hücrelerinin boyutunu A4 oranına göre ayarla
+                printPreviewGrid.style.maxHeight = '100%';
+                printPreviewGrid.style.overflow = 'hidden';
+            }
+
+            function updateGridLayout(imageUrls) {
+                const count = imageUrls.length;
+                imageCatalog.dataset.imageCount = count;
+                printPreviewGrid.dataset.imageCount = count;
+                
+                printPreviewGrid.innerHTML = '';
+                if (count > 0) {
+                    // Önizlemede sadece ilk sayfadaki görselleri göster
+                    let imagesPerPage;
+                    if (count === 1) imagesPerPage = 1;
+                    else if (count === 2) imagesPerPage = 2;
+                    else if (count === 3) imagesPerPage = 3;
+                    else if (count === 4) imagesPerPage = 4;
+                    else if (count <= 6) imagesPerPage = 6;
+                    else if (count <= 9) imagesPerPage = 9;
+                    else if (count <= 12) imagesPerPage = 12;
+                    else if (count <= 15) imagesPerPage = 15;
+                    else imagesPerPage = 16;
+                    
+                    const previewCount = Math.min(count, imagesPerPage);
+                    for (let i = 0; i < previewCount; i++) {
+                        const img = document.createElement('img');
+                        img.src = imageUrls[i];
+                        printPreviewGrid.appendChild(img);
+                    }
+                    
+                    // Eğer birden fazla sayfa varsa bilgi ekle
+                    if (count > imagesPerPage) {
+                        const info = document.createElement('div');
+                        info.style.gridColumn = '1 / -1';
+                        info.style.textAlign = 'center';
+                        info.style.fontSize = '12px';
+                        info.style.color = '#666';
+                        info.style.marginTop = '8px';
+                        info.textContent = `İlk sayfa önizlemesi - Toplam ${Math.ceil(count / imagesPerPage)} sayfa`;
+                        printPreviewGrid.appendChild(info);
+                    }
+                } else {
+                    printPreviewGrid.innerHTML = '<p class="placeholder-text">Sayfa düzeni burada gösterilecek.</p>';
+                }
+            }
+
+            async function createCombinedImage() {
+                if (loadedImages.length === 0) return null;
+
+                const count = loadedImages.length;
+                let columns, rows;
+                
+                if (count === 1) { columns = 1; rows = 1; }
+                else if (count === 2) { columns = 1; rows = 2; }
+                else if (count === 3) { columns = 1; rows = 3; }
+                else if (count === 4) { columns = 2; rows = 2; }
+                else if (count <= 6) { columns = 2; rows = 3; }
+                else if (count <= 9) { columns = 3; rows = 3; }
+                else if (count <= 12) { columns = 3; rows = 4; }
+                else if (count <= 15) { columns = 3; rows = 5; }
+                else { columns = 4; rows = Math.ceil(count / 4); }
+
+                // A4 oranında canvas oluştur (300 DPI için yüksek çözünürlük)
+                const canvasWidth = 2480; // A4 width at 300 DPI
+                const canvasHeight = 3508; // A4 height at 300 DPI
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+                const ctx = canvas.getContext('2d');
+
+                // Beyaz arka plan
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                // Margin ve padding
+                const margin = 100;
+                const padding = 20;
+                const availableWidth = canvasWidth - (2 * margin);
+                const availableHeight = canvasHeight - (2 * margin);
+                
+                const cellWidth = (availableWidth - (columns - 1) * padding) / columns;
+                const cellHeight = (availableHeight - (rows - 1) * padding) / rows;
+
+                // Görselleri yerleştir
+                for (let i = 0; i < loadedImages.length; i++) {
+                    const img = loadedImages[i];
+                    const row = Math.floor(i / columns);
+                    const col = i % columns;
+                    
+                    const x = margin + col * (cellWidth + padding);
+                    const y = margin + row * (cellHeight + padding);
+                    
+                    // Görsel boyutlarını hesapla (aspect ratio korunarak)
+                    const aspectRatio = img.width / img.height;
+                    let drawWidth = cellWidth;
+                    let drawHeight = cellHeight;
+                    
+                    if (aspectRatio > cellWidth / cellHeight) {
+                        drawHeight = cellWidth / aspectRatio;
+                    } else {
+                        drawWidth = cellHeight * aspectRatio;
+                    }
+                    
+                    // Ortalamak için offset hesapla
+                    const offsetX = (cellWidth - drawWidth) / 2;
+                    const offsetY = (cellHeight - drawHeight) / 2;
+                    
+                    ctx.drawImage(img, x + offsetX, y + offsetY, drawWidth, drawHeight);
+                }
+
+                return new Promise(resolve => {
+                    canvas.toBlob(resolve, 'image/jpeg', 0.9);
+                });
+            }
+
+            async function handlePrint() {
+                // Yazdırma öncesi optimizasyonlar
+                try {
+                    // Scroll pozisyonunu sıfırla
+                    window.scrollTo(0, 0);
+                    document.body.scrollTop = 0;
+                    document.documentElement.scrollTop = 0;
+                    
+                    // Extra margin/padding temizle
+                    document.body.style.margin = '0';
+                    document.body.style.padding = '0';
+                    
+                    // Kısa bir gecikme ile yazdırma penceresini aç
+                    setTimeout(() => {
+                        window.print();
+                    }, 150);
+                } catch (error) {
+                    console.error('Yazdırma hatası:', error);
+                    // Fallback
+                    window.print();
+                }
+            }
+
+            function downloadImage(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'katalog.jpg';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            function clearAll() {
+                loadedImages = [];
+                printButton.disabled = true;
+                clearButton.disabled = true;
+                imageCountText.textContent = 'Henüz fotoğraf seçilmedi.';
+                printPreviewGrid.innerHTML = '<p class="placeholder-text">Sayfa düzeni burada gösterilecek.</p>';
+                imageCatalog.innerHTML = '';
+                imageCatalog.className = '';
+                imageCatalog.style.display = ''; // Grid stilini sıfırla
+                imageCatalog.dataset.imageCount = '0';
+                printPreviewGrid.dataset.imageCount = '0';
+                imageUpload.value = '';
+                
+                printPreviewGrid.style.gridTemplateColumns = '';
+                printPreviewGrid.style.gridTemplateRows = '';
+            }
+
+            // Sayfa yüklendiğinde mobil optimizasyonları
+            if (isMobile) {
+                // Viewport height ayarı
+                const setVH = () => {
+                    const vh = window.innerHeight * 0.01;
+                    document.documentElement.style.setProperty('--vh', `${vh}px`);
+                };
+                
+                setVH();
+                window.addEventListener('resize', setVH);
+                window.addEventListener('orientationchange', setVH);
+
+                // Touch feedback ekleme
+                document.querySelectorAll('.button').forEach(button => {
+                    button.addEventListener('touchstart', function() {
+                        this.style.opacity = '0.8';
+                    }, {passive: true});
+                    
+                    button.addEventListener('touchend', function() {
+                        this.style.opacity = '1';
+                    }, {passive: true});
+                });
+
+                // Mobil yazdırma için özel ayarlar
+                window.addEventListener('beforeprint', () => {
+                    // Yazdırma öncesi son ayarlamalar
+                    document.body.style.overflow = 'hidden';
+                    document.body.style.margin = '0';
+                    document.body.style.padding = '0';
+                    document.documentElement.style.overflow = 'hidden';
+
+                    // Ölçeklendirme sorununu çözmek için ölçeği %99 olarak ayarla
+                    document.body.style.transform = 'scale(0.99)';
+                    document.body.style.transformOrigin = 'top left';
+
+                    // Scroll pozisyonunu sıfırla
+                    window.scrollTo(0, 0);
+                });
+
+                window.addEventListener('afterprint', () => {
+                    // Yazdırma sonrası temizlik
+                    document.body.style.overflow = '';
+                    document.documentElement.style.overflow = '';
+                    document.body.style.transform = '';
+                    document.body.style.transformOrigin = '';
+                });
+            }
+
+            // Başlangıç durumu
+            clearAll();
+        });
+    </script>
+</body>
+</html>
