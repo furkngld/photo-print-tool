@@ -4,7 +4,8 @@
 
 Birden fazla fotoğrafı tek bir A4 sayfasına otomatik olarak yerleştirerek kolayca yazdırmanızı sağlayan basit ve sunucusuz bir web aracı.
 
-![Uygulama Ekran Görüntüsü](https://i.imgur.com/vH9J0yD.png)
+![Uygulama Ekran Görüntüsü](<img width="677" height="1300" alt="Screen Shot 2025-09-09 at 23 23 31" src="https://github.com/user-attachments/assets/6a565972-3bd1-4b4c-8b33-b0721ea00fb1" />
+)
 
 ## 📝 Açıklama
 
