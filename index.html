@@ -1032,70 +1032,48 @@
                     return;
                 }
 
+                const isChrome = /Chrome/.test(navigator.userAgent);
+                const isChromeAndroid = isChrome && isAndroid;
+
+                // Chrome Android için Web Share API kullanmayı dene
+                if (isChromeAndroid && navigator.share && navigator.canShare) {
+                    try {
+                        const imageFile = new File([previewCanvasBlob], 'fotograf-yazdir.jpeg', { type: 'image/jpeg' });
+                        if (navigator.canShare({ files: [imageFile] })) {
+                            await navigator.share({
+                                title: 'Fotoğrafı Yazdır',
+                                text: 'A4 Sayfasını Yazdır',
+                                files: [imageFile],
+                            });
+                            return; // Paylaşım başarılı oldu, işlemi bitir.
+                        }
+                    } catch (error) {
+                        console.warn('Web Share API ile paylaşılamadı, standart yazdırmaya geçiliyor.', error);
+                        // Paylaşım başarısız olursa standart metoda geç.
+                    }
+                }
+
+                // Diğer tüm tarayıcılar ve Web Share API'nin başarısız olduğu durumlar için
+                // yeni pencere (window.open) metodunu kullan.
                 try {
-                    // Önceki yazdırma iframe'ini temizle
-                    const oldFrame = document.getElementById('print-frame');
-                    if (oldFrame) {
-                        oldFrame.remove();
+                    const printWindow = window.open('', '_blank');
+                    if (!printWindow) {
+                        alert("Yazdırma penceresi açılamadı. Lütfen tarayıcınızın pop-up engelleyicisini devre dışı bırakıp tekrar deneyin.");
+                        return;
                     }
-
-                    // Gizli bir iframe oluştur
-                    const iframe = document.createElement('iframe');
-                    iframe.id = 'print-frame';
-                    iframe.style.position = 'absolute';
-                    iframe.style.width = '0';
-                    iframe.style.height = '0';
-                    iframe.style.border = '0';
-                    document.body.appendChild(iframe);
-
-                    const printDoc = iframe.contentWindow.document;
                     
-                    const isChrome = /Chrome/.test(navigator.userAgent);
-                    const isChromeAndroid = isChrome && isAndroid;
+                    let content = '';
+                    const imageUrl = URL.createObjectURL(previewCanvasBlob);
+                    content = `<img src="${imageUrl}" style="width:100%; height:100%; object-fit:contain;" />`;
 
-                    let content;
-                    let isSVG = false;
-
-                    if (isChromeAndroid) {
-                        content = await createSVGFromCanvas();
-                        isSVG = true;
-                    } else {
-                        const imageUrl = URL.createObjectURL(previewCanvasBlob);
-                        content = `<img src="${imageUrl}" />`;
-                        // URL'yi temizlemek için iframe'in yüklenmesini bekle
-                        iframe.onload = () => {
-                            URL.revokeObjectURL(imageUrl);
-                            // Yükleme tamamlandıktan sonra yazdır
-                            triggerPrint(iframe);
-                        };
-                    }
-
-                    printDoc.open();
-                    printDoc.write(`
+                    printWindow.document.write(`
                         <!DOCTYPE html>
                         <html>
                         <head>
                             <title>Yazdır</title>
                             <style>
-                                @page {
-                                    size: A4 portrait;
-                                    margin: 0;
-                                }
-                                html, body {
-                                    width: 100%;
-                                    height: 100%;
-                                    margin: 0;
-                                    padding: 0;
-                                    overflow: hidden;
-                                }
-                                img, svg {
-                                    box-sizing: border-box;
-                                    width: 100%;
-                                    height: 100%;
-                                    max-width: 100%;
-                                    max-height: 100%;
-                                    object-fit: contain;
-                                }
+                                @page { size: A4 portrait; margin: 0; }
+                                body { margin: 0; padding: 0; }
                             </style>
                         </head>
                         <body>
@@ -1103,30 +1081,24 @@
                         </body>
                         </html>
                     `);
-                    printDoc.close();
-
-                    // SVG için onload olayı tetiklenmez, bu yüzden doğrudan çağır
-                    if (isSVG) {
-                        triggerPrint(iframe);
-                    }
+                    
+                    printWindow.document.close(); // document.write bitişi için önemli.
+                    
+                    // İçeriğin yüklenmesi için kısa bir bekleme
+                    setTimeout(() => {
+                        printWindow.focus();
+                        printWindow.print();
+                        // Blob URL'yi temizle, ancak pencere kapandıktan sonra yapmak daha güvenli olabilir.
+                        // Şimdilik yazdırma komutundan hemen sonra temizliyoruz.
+                        URL.revokeObjectURL(imageUrl);
+                        // Bazı tarayıcılar yazdırma sonrası pencereyi otomatik kapatmaz.
+                        // printWindow.close(); 
+                    }, 250);
 
                 } catch (error) {
                     console.error('Yazdırma hatası:', error);
                     alert('Yazdırma sırasında bir hata oluştu: ' + error.message);
                 }
-            }
-
-            function triggerPrint(iframe) {
-                 // Tarayıcının içeriği işlemesi için kısa bir bekleme
-                setTimeout(() => {
-                    try {
-                        iframe.contentWindow.focus();
-                        iframe.contentWindow.print();
-                    } catch (e) {
-                        console.error("Yazdırma tetiklenemedi:", e);
-                        alert("Yazdırma penceresi açılamadı. Lütfen tarayıcınızın pop-up engelleyicisini kontrol edin.");
-                    }
-                }, 300); // Bu süre, içeriğin render olması için gereklidir.
             }
 
             async function createSVGFromCanvas() {
