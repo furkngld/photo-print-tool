@@ -285,6 +285,39 @@
                 overflow: hidden !important;
             }
 
+            /* Chrome Android yazdırma sorunu için özel düzeltmeler */
+            .print-page {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            
+            .print-page:last-child {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            
+            .print-page img {
+                max-width: 95% !important;
+                max-height: 95% !important;
+                width: auto !important;
+                height: auto !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                display: block !important;
+                margin: auto !important;
+                position: relative !important;
+                top: 0 !important;
+                left: 0 !important;
+                transform: none !important;
+            }
+            
+            .print-page svg {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+
             #print-area {
                 display: block !important;
                 width: 100% !important;
@@ -297,21 +330,23 @@
             .print-page {
                 width: 100% !important;
                 height: 100vh !important;
-                page-break-after: always !important;
+                page-break-after: avoid !important;
                 display: flex !important;
                 flex-direction: column !important;
                 box-sizing: border-box !important;
-                padding: 4mm !important;
+                padding: 2mm !important;
                 background: white !important;
                 position: relative !important;
                 max-height: 100vh !important;
                 overflow: hidden !important;
                 break-inside: avoid !important;
+                break-after: avoid !important;
             }
 
             .print-page:last-child,
             .print-page:last-of-type {
                 page-break-after: avoid !important;
+                break-after: avoid !important;
                 height: auto !important;
                 min-height: 100vh !important;
                 max-height: 100vh !important;
@@ -599,6 +634,7 @@
 
             // Görsel verilerini saklamak için
             let loadedImages = [];
+            let previewCanvasBlob = null; // Önizleme canvas'ını blob olarak saklayacağız
 
             // --- OLAY DİNLEYİCİLERİ ---
             imageUpload.addEventListener('change', handleFileSelect);
@@ -644,6 +680,9 @@
                     // Yazdırma alanını sayfalara bölerek doldur
                     createPrintPages(imageUrls);
                     updateUIAfterProcessing(imageUrls);
+                    
+                    // Önizleme canvas'ını oluştur
+                    await createPreviewCanvas();
 
                 } catch (error) {
                     console.error("Dosya okunurken bir hata oluştu:", error);
@@ -832,6 +871,89 @@
                 }
             }
 
+            async function createPreviewCanvas() {
+                if (loadedImages.length === 0) return;
+
+                const count = loadedImages.length;
+                let columns, rows;
+                
+                // Grid düzenini hesapla
+                if (count === 1) { columns = 1; rows = 1; }
+                else if (count === 2) { columns = 1; rows = 2; }
+                else if (count === 3) { columns = 1; rows = 3; }
+                else if (count === 4) { columns = 2; rows = 2; }
+                else if (count <= 6) { columns = 2; rows = 3; }
+                else if (count <= 9) { columns = 3; rows = 3; }
+                else if (count <= 12) { columns = 3; rows = 4; }
+                else if (count <= 15) { columns = 3; rows = 5; }
+                else { columns = 4; rows = 4; }
+
+                // A4 oranında canvas oluştur (300 DPI için yüksek çözünürlük)
+                const canvasWidth = 2480; // A4 width at 300 DPI
+                const canvasHeight = 3508; // A4 height at 300 DPI
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+                const ctx = canvas.getContext('2d');
+
+                // Beyaz arka plan
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                // Margin ve padding
+                const margin = 60; // 2mm kenar boşluğu (daha da azaltıldı)
+                const gap = 15; // Görseller arası boşluk (daha da azaltıldı)
+                const availableWidth = canvasWidth - (2 * margin);
+                const availableHeight = canvasHeight - (2 * margin);
+                
+                const cellWidth = (availableWidth - (columns - 1) * gap) / columns;
+                const cellHeight = (availableHeight - (rows - 1) * gap) / rows;
+
+                // Sadece ilk sayfadaki görselleri çiz (önizleme ile uyumlu)
+                const imagesPerPage = columns * rows;
+                const previewCount = Math.min(count, imagesPerPage);
+
+                for (let i = 0; i < previewCount; i++) {
+                    const img = loadedImages[i];
+                    const row = Math.floor(i / columns);
+                    const col = i % columns;
+                    
+                    const x = margin + col * (cellWidth + gap);
+                    const y = margin + row * (cellHeight + gap);
+                    
+                    // Görsel boyutlarını hesapla (aspect ratio korunarak)
+                    const aspectRatio = img.width / img.height;
+                    let drawWidth = cellWidth;
+                    let drawHeight = cellHeight;
+                    
+                    if (aspectRatio > cellWidth / cellHeight) {
+                        drawHeight = cellWidth / aspectRatio;
+                    } else {
+                        drawWidth = cellHeight * aspectRatio;
+                    }
+                    
+                    // Ortalamak için offset hesapla
+                    const offsetX = (cellWidth - drawWidth) / 2;
+                    const offsetY = (cellHeight - drawHeight) / 2;
+                    
+                    // Hafif border ekle
+                    ctx.strokeStyle = '#ddd';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x + offsetX - 2, y + offsetY - 2, drawWidth + 4, drawHeight + 4);
+                    
+                    ctx.drawImage(img, x + offsetX, y + offsetY, drawWidth, drawHeight);
+                }
+
+                // Canvas'ı blob olarak sakla
+                return new Promise(resolve => {
+                    canvas.toBlob(blob => {
+                        previewCanvasBlob = blob;
+                        resolve(blob);
+                    }, 'image/jpeg', 0.9);
+                });
+            }
+
             async function createCombinedImage() {
                 if (loadedImages.length === 0) return null;
 
@@ -903,26 +1025,189 @@
             }
 
             async function handlePrint() {
-                // Yazdırma öncesi optimizasyonlar
+                if (!previewCanvasBlob) {
+                    console.error('Önizleme görseli hazır değil');
+                    return;
+                }
+
                 try {
-                    // Scroll pozisyonunu sıfırla
-                    window.scrollTo(0, 0);
-                    document.body.scrollTop = 0;
-                    document.documentElement.scrollTop = 0;
+                    // Chrome Android için özel kontrol
+                    const isChrome = /Chrome/.test(navigator.userAgent);
+                    const isChromeAndroid = isChrome && isAndroid;
                     
-                    // Extra margin/padding temizle
-                    document.body.style.margin = '0';
-                    document.body.style.padding = '0';
+                    if (isChromeAndroid) {
+                        // Chrome Android için SVG yaklaşımı
+                        await handleChromeAndroidPrint();
+                    } else {
+                        // Diğer tarayıcılar için normal yaklaşım
+                        await handleNormalPrint();
+                    }
                     
-                    // Kısa bir gecikme ile yazdırma penceresini aç
-                    setTimeout(() => {
-                        window.print();
-                    }, 150);
                 } catch (error) {
                     console.error('Yazdırma hatası:', error);
-                    // Fallback
+                    // Fallback olarak eski yöntemi kullan
                     window.print();
                 }
+            }
+
+            async function handleNormalPrint() {
+                // Canvas blob'unu URL'ye çevir
+                const imageUrl = URL.createObjectURL(previewCanvasBlob);
+                
+                // Yazdırma alanını temizle ve tek görsel ekle
+                imageCatalog.innerHTML = '';
+                
+                const pageContainer = document.createElement('div');
+                pageContainer.className = 'print-page';
+                pageContainer.style.padding = '0';
+                pageContainer.style.display = 'flex';
+                pageContainer.style.alignItems = 'center';
+                pageContainer.style.justifyContent = 'center';
+                
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = '100%';
+                img.style.width = 'auto';
+                img.style.height = 'auto';
+                img.style.objectFit = 'contain';
+                
+                pageContainer.appendChild(img);
+                imageCatalog.appendChild(pageContainer);
+                
+                // Yazdırma öncesi optimizasyonlar
+                window.scrollTo(0, 0);
+                document.body.scrollTop = 0;
+                document.documentElement.scrollTop = 0;
+                
+                document.body.style.margin = '0';
+                document.body.style.padding = '0';
+                
+                // Kısa bir gecikme ile yazdırma penceresini aç
+                setTimeout(() => {
+                    window.print();
+                    // Yazdırma sonrası URL'yi temizle
+                    setTimeout(() => {
+                        URL.revokeObjectURL(imageUrl);
+                    }, 1000);
+                }, 150);
+            }
+
+            async function handleChromeAndroidPrint() {
+                // Chrome Android için SVG tabanlı çözüm
+                const svgContent = await createSVGFromCanvas();
+                
+                // Yazdırma alanını temizle
+                imageCatalog.innerHTML = '';
+                
+                const pageContainer = document.createElement('div');
+                pageContainer.className = 'print-page';
+                pageContainer.style.padding = '1mm';
+                pageContainer.style.display = 'block';
+                pageContainer.style.width = '100%';
+                pageContainer.style.height = '100vh';
+                pageContainer.style.pageBreakAfter = 'avoid';
+                pageContainer.style.pageBreakInside = 'avoid';
+                pageContainer.style.breakAfter = 'avoid';
+                pageContainer.style.breakInside = 'avoid';
+                pageContainer.style.overflow = 'hidden';
+                pageContainer.style.margin = '0';
+                
+                pageContainer.innerHTML = svgContent;
+                imageCatalog.appendChild(pageContainer);
+                
+                // Yazdırma öncesi optimizasyonlar
+                window.scrollTo(0, 0);
+                document.body.scrollTop = 0;
+                document.documentElement.scrollTop = 0;
+                
+                // Ekstra boş içerik temizle
+                document.body.style.margin = '0';
+                document.body.style.padding = '0';
+                
+                setTimeout(() => {
+                    window.print();
+                }, 200);
+            }
+
+            async function createSVGFromCanvas() {
+                if (loadedImages.length === 0) return '';
+
+                const count = loadedImages.length;
+                let columns, rows;
+                
+                // Grid düzenini hesapla
+                if (count === 1) { columns = 1; rows = 1; }
+                else if (count === 2) { columns = 1; rows = 2; }
+                else if (count === 3) { columns = 1; rows = 3; }
+                else if (count === 4) { columns = 2; rows = 2; }
+                else if (count <= 6) { columns = 2; rows = 3; }
+                else if (count <= 9) { columns = 3; rows = 3; }
+                else if (count <= 12) { columns = 3; rows = 4; }
+                else if (count <= 15) { columns = 3; rows = 5; }
+                else { columns = 4; rows = 4; }
+
+                // SVG boyutları (mm cinsinden)
+                const svgWidth = 210; // A4 width in mm
+                const svgHeight = 297; // A4 height in mm
+                const margin = 2; // 2mm kenar boşluğu (daha da azaltıldı)
+                const gap = 1; // 1mm görseller arası boşluk (daha da azaltıldı)
+                
+                const availableWidth = svgWidth - (2 * margin);
+                const availableHeight = svgHeight - (2 * margin);
+                
+                const cellWidth = (availableWidth - (columns - 1) * gap) / columns;
+                const cellHeight = (availableHeight - (rows - 1) * gap) / rows;
+
+                let svgContent = `<svg width="${svgWidth}mm" height="${svgHeight}mm" viewBox="0 0 ${svgWidth} ${svgHeight}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="width: 100%; height: 100%; max-width: 100%; max-height: 100%;">`;
+                
+                // Beyaz arka plan
+                svgContent += `<rect width="${svgWidth}" height="${svgHeight}" fill="white"/>`;
+
+                // Sadece ilk sayfadaki görselleri çiz
+                const imagesPerPage = columns * rows;
+                const previewCount = Math.min(count, imagesPerPage);
+
+                for (let i = 0; i < previewCount; i++) {
+                    const img = loadedImages[i];
+                    const row = Math.floor(i / columns);
+                    const col = i % columns;
+                    
+                    const x = margin + col * (cellWidth + gap);
+                    const y = margin + row * (cellHeight + gap);
+                    
+                    // Görsel boyutlarını hesapla (aspect ratio korunarak)
+                    const aspectRatio = img.width / img.height;
+                    let drawWidth = cellWidth;
+                    let drawHeight = cellHeight;
+                    
+                    if (aspectRatio > cellWidth / cellHeight) {
+                        drawHeight = cellWidth / aspectRatio;
+                    } else {
+                        drawWidth = cellHeight * aspectRatio;
+                    }
+                    
+                    // Ortalamak için offset hesapla
+                    const offsetX = (cellWidth - drawWidth) / 2;
+                    const offsetY = (cellHeight - drawHeight) / 2;
+                    
+                    // Canvas'tan base64 data URL al
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                    
+                    // Border ekle
+                    svgContent += `<rect x="${x + offsetX}" y="${y + offsetY}" width="${drawWidth}" height="${drawHeight}" fill="none" stroke="#ddd" stroke-width="0.5"/>`;
+                    
+                    // Görseli ekle
+                    svgContent += `<image x="${x + offsetX}" y="${y + offsetY}" width="${drawWidth}" height="${drawHeight}" xlink:href="${dataUrl}" preserveAspectRatio="xMidYMid meet"/>`;
+                }
+
+                svgContent += '</svg>';
+                return svgContent;
             }
 
             function downloadImage(blob) {
@@ -938,6 +1223,7 @@
 
             function clearAll() {
                 loadedImages = [];
+                previewCanvasBlob = null;
                 printButton.disabled = true;
                 clearButton.disabled = true;
                 imageCountText.textContent = 'Henüz fotoğraf seçilmedi.';
