@@ -1028,110 +1028,105 @@
             async function handlePrint() {
                 if (!previewCanvasBlob) {
                     console.error('Önizleme görseli hazır değil');
+                    alert('Yazdırma için görsel hazırlanmadı. Lütfen tekrar fotoğraf seçin.');
                     return;
                 }
 
                 try {
-                    // Chrome Android için özel kontrol
+                    // Önceki yazdırma iframe'ini temizle
+                    const oldFrame = document.getElementById('print-frame');
+                    if (oldFrame) {
+                        oldFrame.remove();
+                    }
+
+                    // Gizli bir iframe oluştur
+                    const iframe = document.createElement('iframe');
+                    iframe.id = 'print-frame';
+                    iframe.style.position = 'absolute';
+                    iframe.style.width = '0';
+                    iframe.style.height = '0';
+                    iframe.style.border = '0';
+                    document.body.appendChild(iframe);
+
+                    const printDoc = iframe.contentWindow.document;
+                    
                     const isChrome = /Chrome/.test(navigator.userAgent);
                     const isChromeAndroid = isChrome && isAndroid;
-                    
+
+                    let content;
+                    let isSVG = false;
+
                     if (isChromeAndroid) {
-                        // Chrome Android için SVG yaklaşımı
-                        await handleChromeAndroidPrint();
+                        content = await createSVGFromCanvas();
+                        isSVG = true;
                     } else {
-                        // Diğer tarayıcılar için normal yaklaşım
-                        await handleNormalPrint();
+                        const imageUrl = URL.createObjectURL(previewCanvasBlob);
+                        content = `<img src="${imageUrl}" />`;
+                        // URL'yi temizlemek için iframe'in yüklenmesini bekle
+                        iframe.onload = () => {
+                            URL.revokeObjectURL(imageUrl);
+                            // Yükleme tamamlandıktan sonra yazdır
+                            triggerPrint(iframe);
+                        };
                     }
-                    
+
+                    printDoc.open();
+                    printDoc.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>Yazdır</title>
+                            <style>
+                                @page {
+                                    size: A4 portrait;
+                                    margin: 0;
+                                }
+                                html, body {
+                                    width: 100%;
+                                    height: 100%;
+                                    margin: 0;
+                                    padding: 0;
+                                    overflow: hidden;
+                                }
+                                img, svg {
+                                    box-sizing: border-box;
+                                    width: 100%;
+                                    height: 100%;
+                                    max-width: 100%;
+                                    max-height: 100%;
+                                    object-fit: contain;
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            ${content}
+                        </body>
+                        </html>
+                    `);
+                    printDoc.close();
+
+                    // SVG için onload olayı tetiklenmez, bu yüzden doğrudan çağır
+                    if (isSVG) {
+                        triggerPrint(iframe);
+                    }
+
                 } catch (error) {
                     console.error('Yazdırma hatası:', error);
-                    // Fallback olarak eski yöntemi kullan
-                    window.print();
+                    alert('Yazdırma sırasında bir hata oluştu: ' + error.message);
                 }
             }
 
-            async function handleNormalPrint() {
-                // Canvas blob'unu URL'ye çevir
-                const imageUrl = URL.createObjectURL(previewCanvasBlob);
-                
-                // Yazdırma alanını temizle ve tek görsel ekle
-                imageCatalog.innerHTML = '';
-                
-                const pageContainer = document.createElement('div');
-                pageContainer.className = 'print-page';
-                pageContainer.style.padding = '0';
-                pageContainer.style.margin = '0';
-                pageContainer.style.display = 'flex';
-                pageContainer.style.alignItems = 'center';
-                pageContainer.style.justifyContent = 'center';
-                
-                const img = document.createElement('img');
-                img.src = imageUrl;
-                img.style.maxWidth = '100%';
-                img.style.maxHeight = '100%';
-                img.style.width = 'auto';
-                img.style.height = 'auto';
-                img.style.objectFit = 'contain';
-                img.style.margin = '0';
-                img.style.padding = '0';
-                
-                pageContainer.appendChild(img);
-                imageCatalog.appendChild(pageContainer);
-                
-                // Yazdırma öncesi optimizasyonlar
-                window.scrollTo(0, 0);
-                document.body.scrollTop = 0;
-                document.documentElement.scrollTop = 0;
-                
-                document.body.style.margin = '0';
-                document.body.style.padding = '0';
-                
-                // Kısa bir gecikme ile yazdırma penceresini aç
+            function triggerPrint(iframe) {
+                 // Tarayıcının içeriği işlemesi için kısa bir bekleme
                 setTimeout(() => {
-                    window.print();
-                    // Yazdırma sonrası URL'yi temizle
-                    setTimeout(() => {
-                        URL.revokeObjectURL(imageUrl);
-                    }, 1000);
-                }, 150);
-            }
-
-            async function handleChromeAndroidPrint() {
-                // Chrome Android için SVG tabanlı çözüm
-                const svgContent = await createSVGFromCanvas();
-                
-                // Yazdırma alanını temizle
-                imageCatalog.innerHTML = '';
-                
-                const pageContainer = document.createElement('div');
-                pageContainer.className = 'print-page';
-                pageContainer.style.padding = '0';
-                pageContainer.style.margin = '0';
-                pageContainer.style.display = 'block';
-                pageContainer.style.width = '100%';
-                pageContainer.style.height = '100vh';
-                pageContainer.style.pageBreakAfter = 'avoid';
-                pageContainer.style.pageBreakInside = 'avoid';
-                pageContainer.style.breakAfter = 'avoid';
-                pageContainer.style.breakInside = 'avoid';
-                pageContainer.style.overflow = 'hidden';
-                
-                pageContainer.innerHTML = svgContent;
-                imageCatalog.appendChild(pageContainer);
-                
-                // Yazdırma öncesi optimizasyonlar
-                window.scrollTo(0, 0);
-                document.body.scrollTop = 0;
-                document.documentElement.scrollTop = 0;
-                
-                // Ekstra boş içerik temizle
-                document.body.style.margin = '0';
-                document.body.style.padding = '0';
-                
-                setTimeout(() => {
-                    window.print();
-                }, 200);
+                    try {
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                    } catch (e) {
+                        console.error("Yazdırma tetiklenemedi:", e);
+                        alert("Yazdırma penceresi açılamadı. Lütfen tarayıcınızın pop-up engelleyicisini kontrol edin.");
+                    }
+                }, 300); // Bu süre, içeriğin render olması için gereklidir.
             }
 
             async function createSVGFromCanvas() {
