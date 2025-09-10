@@ -1035,7 +1035,7 @@
                 const isChrome = /Chrome/.test(navigator.userAgent);
                 const isChromeAndroid = isChrome && isAndroid;
 
-                // Chrome Android için Web Share API kullanmayı dene
+                // 1. Yöntem: Chrome Android için Web Share API (En Kararlı)
                 if (isChromeAndroid && navigator.share && navigator.canShare) {
                     try {
                         const imageFile = new File([previewCanvasBlob], 'fotograf-yazdir.jpeg', { type: 'image/jpeg' });
@@ -1045,64 +1045,81 @@
                                 text: 'A4 Sayfasını Yazdır',
                                 files: [imageFile],
                             });
-                            return; // Paylaşım başarılı oldu, işlemi bitir.
+                            return; // Paylaşım başarılı, işlemi bitir.
                         }
                     } catch (error) {
-                        console.warn('Web Share API ile paylaşılamadı, standart yazdırmaya geçiliyor.', error);
-                        // Paylaşım başarısız olursa standart metoda geç.
+                        console.warn('Web Share API ile paylaşılamadı, iframe yöntemine geçiliyor.', error);
                     }
                 }
 
-                // Diğer tüm tarayıcılar için: mevcut sayfada yazdırma
-                try {
-                    // Ana içeriği gizle
-                    document.querySelectorAll('.no-print').forEach(el => el.style.display = 'none');
-                    document.body.style.background = 'white';
-                    document.body.style.margin = '0';
-                    document.body.style.padding = '0';
-
-                    // Sadece print-area'yı göster
-                    document.getElementById('print-area').style.display = 'block';
-                    // Print alanını temizle ve tek görsel ekle
-                    const imageCatalog = document.getElementById('image-catalog');
-                    imageCatalog.innerHTML = '';
-                    const pageContainer = document.createElement('div');
-                    pageContainer.className = 'print-page';
-                    pageContainer.style.padding = '0';
-                    pageContainer.style.margin = '0';
-                    pageContainer.style.display = 'flex';
-                    pageContainer.style.alignItems = 'center';
-                    pageContainer.style.justifyContent = 'center';
-                    const imageUrl = URL.createObjectURL(previewCanvasBlob);
-                    const img = document.createElement('img');
-                    img.src = imageUrl;
-                    img.style.maxWidth = '100%';
-                    img.style.maxHeight = '100%';
-                    img.style.width = 'auto';
-                    img.style.height = 'auto';
-                    img.style.objectFit = 'contain';
-                    img.style.margin = '0';
-                    img.style.padding = '0';
-                    pageContainer.appendChild(img);
-                    imageCatalog.appendChild(pageContainer);
-
-                    setTimeout(() => {
-                        window.print();
-                        setTimeout(() => {
-                            // Eski görünümü geri getir
-                            document.querySelectorAll('.no-print').forEach(el => el.style.display = '');
-                            document.body.style.background = '';
-                            document.body.style.margin = '';
-                            document.body.style.padding = '';
-                            document.getElementById('print-area').style.display = 'none';
-                            imageCatalog.innerHTML = '';
-                            URL.revokeObjectURL(imageUrl);
-                        }, 500);
-                    }, 200);
-                } catch (error) {
-                    console.error('Yazdırma hatası:', error);
-                    alert('Yazdırma sırasında bir hata oluştu: ' + error.message);
+                // 2. Yöntem: Diğer tüm tarayıcılar için (iOS, Desktop, LibreWolf vb.)
+                // Gizli iframe oluşturarak yazdırma. Bu yöntem, kenar boşlukları üzerinde tam kontrol sağlar.
+                const oldFrame = document.getElementById('print-frame');
+                if (oldFrame) {
+                    oldFrame.remove();
                 }
+
+                const iframe = document.createElement('iframe');
+                iframe.id = 'print-frame';
+                iframe.style.position = 'absolute';
+                iframe.style.width = '0';
+                iframe.style.height = '0';
+                iframe.style.border = '0';
+                document.body.appendChild(iframe);
+
+                const imageUrl = URL.createObjectURL(previewCanvasBlob);
+                const printDoc = iframe.contentWindow.document;
+
+                printDoc.open();
+                printDoc.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Yazdır</title>
+                        <style>
+                            @page {
+                                size: A4 portrait;
+                                margin: 0;
+                            }
+                            html, body {
+                                width: 100%;
+                                height: 100%;
+                                margin: 0;
+                                padding: 0;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                overflow: hidden;
+                            }
+                            img {
+                                max-width: 100%;
+                                max-height: 100%;
+                                object-fit: contain;
+                                box-sizing: border-box;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <img src="${imageUrl}" />
+                    </body>
+                    </html>
+                `);
+                printDoc.close();
+
+                iframe.onload = () => {
+                    try {
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                    } catch (e) {
+                        console.error("Yazdırma tetiklenemedi:", e);
+                        alert("Yazdırma penceresi açılamadı. Lütfen tarayıcınızın pop-up engelleyicisini kontrol edin.");
+                    } finally {
+                        // Kaynakları temizle
+                        URL.revokeObjectURL(imageUrl);
+                        // Iframe'i kısa bir süre sonra kaldır
+                        setTimeout(() => iframe.remove(), 1000);
+                    }
+                };
             }
 
             async function createSVGFromCanvas() {
