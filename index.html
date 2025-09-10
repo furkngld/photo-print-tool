@@ -261,7 +261,7 @@
         /* --- YAZDIRMA STİLLERİ --- */
         @page {
             size: A4 portrait;
-            margin: 0;
+            margin: 0 !important;
         }
 
         @media print {
@@ -334,7 +334,8 @@
                 display: flex !important;
                 flex-direction: column !important;
                 box-sizing: border-box !important;
-                padding: 2mm !important;
+                padding: 0 !important;
+                margin: 0 !important;
                 background: white !important;
                 position: relative !important;
                 max-height: 100vh !important;
@@ -901,9 +902,9 @@
                 ctx.fillStyle = 'white';
                 ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-                // Margin ve padding
-                const margin = 60; // 2mm kenar boşluğu (daha da azaltıldı)
-                const gap = 15; // Görseller arası boşluk (daha da azaltıldı)
+                // Margin ve padding - web ile aynı kenar boşlukları
+                const margin = 30; // Çok minimal kenar boşluğu
+                const gap = 8; // Minimal görseller arası boşluk
                 const availableWidth = canvasWidth - (2 * margin);
                 const availableHeight = canvasHeight - (2 * margin);
                 
@@ -1060,6 +1061,7 @@
                 const pageContainer = document.createElement('div');
                 pageContainer.className = 'print-page';
                 pageContainer.style.padding = '0';
+                pageContainer.style.margin = '0';
                 pageContainer.style.display = 'flex';
                 pageContainer.style.alignItems = 'center';
                 pageContainer.style.justifyContent = 'center';
@@ -1071,6 +1073,8 @@
                 img.style.width = 'auto';
                 img.style.height = 'auto';
                 img.style.objectFit = 'contain';
+                img.style.margin = '0';
+                img.style.padding = '0';
                 
                 pageContainer.appendChild(img);
                 imageCatalog.appendChild(pageContainer);
@@ -1102,7 +1106,8 @@
                 
                 const pageContainer = document.createElement('div');
                 pageContainer.className = 'print-page';
-                pageContainer.style.padding = '1mm';
+                pageContainer.style.padding = '0';
+                pageContainer.style.margin = '0';
                 pageContainer.style.display = 'block';
                 pageContainer.style.width = '100%';
                 pageContainer.style.height = '100vh';
@@ -1111,7 +1116,6 @@
                 pageContainer.style.breakAfter = 'avoid';
                 pageContainer.style.breakInside = 'avoid';
                 pageContainer.style.overflow = 'hidden';
-                pageContainer.style.margin = '0';
                 
                 pageContainer.innerHTML = svgContent;
                 imageCatalog.appendChild(pageContainer);
@@ -1150,8 +1154,8 @@
                 // SVG boyutları (mm cinsinden)
                 const svgWidth = 210; // A4 width in mm
                 const svgHeight = 297; // A4 height in mm
-                const margin = 2; // 2mm kenar boşluğu (daha da azaltıldı)
-                const gap = 1; // 1mm görseller arası boşluk (daha da azaltıldı)
+                const margin = 1; // 1mm kenar boşluğu (minimal)
+                const gap = 0.5; // 0.5mm görseller arası boşluk (minimal)
                 
                 const availableWidth = svgWidth - (2 * margin);
                 const availableHeight = svgHeight - (2 * margin);
