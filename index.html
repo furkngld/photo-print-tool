@@ -593,6 +593,17 @@
             }
 
             // --- FONKSİYONLAR ---
+            function getGridSpec(count) {
+                if (count === 1) return { imagesPerPage: 1, columns: 1, rows: 1, gridClass: 'grid-1x1' };
+                if (count === 2) return { imagesPerPage: 2, columns: 1, rows: 2, gridClass: 'grid-1x2' };
+                if (count === 3) return { imagesPerPage: 3, columns: 1, rows: 3, gridClass: 'grid-1x3' };
+                if (count === 4) return { imagesPerPage: 4, columns: 2, rows: 2, gridClass: 'grid-2x2' };
+                if (count <= 6) return { imagesPerPage: 6, columns: 2, rows: 3, gridClass: 'grid-2x3' };
+                if (count <= 9) return { imagesPerPage: 9, columns: 3, rows: 3, gridClass: 'grid-3x3' };
+                if (count <= 12) return { imagesPerPage: 12, columns: 3, rows: 4, gridClass: 'grid-3x4' };
+                if (count <= 15) return { imagesPerPage: 15, columns: 3, rows: 5, gridClass: 'grid-3x5' };
+                return { imagesPerPage: 16, columns: 4, rows: 4, gridClass: 'grid-4x4' };
+            }
             function readFileAsPromise(file) {
                 return new Promise((resolve, reject) => {
                     const reader = new FileReader();
@@ -661,28 +672,7 @@
                 imageCatalog.innerHTML = ''; // Önce temizle
                 
                 const count = imageUrls.length;
-                let imagesPerPage, columns, rows, gridClass;
-                
-                // Her sayfa için maksimum görsel sayısını ve grid düzenini belirle
-                if (count === 1) { 
-                    imagesPerPage = 1; columns = 1; rows = 1; gridClass = 'grid-1x1';
-                } else if (count === 2) { 
-                    imagesPerPage = 2; columns = 1; rows = 2; gridClass = 'grid-1x2';
-                } else if (count === 3) { 
-                    imagesPerPage = 3; columns = 1; rows = 3; gridClass = 'grid-1x3';
-                } else if (count === 4) { 
-                    imagesPerPage = 4; columns = 2; rows = 2; gridClass = 'grid-2x2';
-                } else if (count <= 6) { 
-                    imagesPerPage = 6; columns = 2; rows = 3; gridClass = 'grid-2x3';
-                } else if (count <= 9) { 
-                    imagesPerPage = 9; columns = 3; rows = 3; gridClass = 'grid-3x3';
-                } else if (count <= 12) { 
-                    imagesPerPage = 12; columns = 3; rows = 4; gridClass = 'grid-3x4';
-                } else if (count <= 15) { 
-                    imagesPerPage = 15; columns = 3; rows = 5; gridClass = 'grid-3x5';
-                } else { 
-                    imagesPerPage = 16; columns = 4; rows = 4; gridClass = 'grid-4x4';
-                }
+                let { imagesPerPage, gridClass } = getGridSpec(count);
 
                 // Sayfa sayısını hesapla
                 const totalPages = Math.ceil(count / imagesPerPage);
@@ -702,14 +692,7 @@
                     
                     // Son sayfa için grid düzenini optimize et
                     if (pageIndex === totalPages - 1 && imagesInThisPage < imagesPerPage) {
-                        let finalGridClass = gridClass;
-                        if (imagesInThisPage === 1) finalGridClass = 'grid-1x1';
-                        else if (imagesInThisPage === 2) finalGridClass = 'grid-1x2';
-                        else if (imagesInThisPage === 3) finalGridClass = 'grid-1x3';
-                        else if (imagesInThisPage === 4) finalGridClass = 'grid-2x2';
-                        else if (imagesInThisPage <= 6) finalGridClass = 'grid-2x3';
-                        else if (imagesInThisPage <= 9) finalGridClass = 'grid-3x3';
-                        
+                        const { gridClass: finalGridClass } = getGridSpec(imagesInThisPage);
                         imageGrid.className = `image-grid ${finalGridClass}`;
                     }
                     
@@ -730,27 +713,7 @@
                 clearButton.disabled = false;
                 
                 // Grid düzenini dinamik olarak hesapla
-                let imagesPerPage, columns, rows, gridClass;
-                
-                if (count === 1) { 
-                    imagesPerPage = 1; columns = 1; rows = 1; gridClass = 'grid-1x1';
-                } else if (count === 2) { 
-                    imagesPerPage = 2; columns = 1; rows = 2; gridClass = 'grid-1x2';
-                } else if (count === 3) { 
-                    imagesPerPage = 3; columns = 1; rows = 3; gridClass = 'grid-1x3';
-                } else if (count === 4) { 
-                    imagesPerPage = 4; columns = 2; rows = 2; gridClass = 'grid-2x2';
-                } else if (count <= 6) { 
-                    imagesPerPage = 6; columns = 2; rows = 3; gridClass = 'grid-2x3';
-                } else if (count <= 9) { 
-                    imagesPerPage = 9; columns = 3; rows = 3; gridClass = 'grid-3x3';
-                } else if (count <= 12) { 
-                    imagesPerPage = 12; columns = 3; rows = 4; gridClass = 'grid-3x4';
-                } else if (count <= 15) { 
-                    imagesPerPage = 15; columns = 3; rows = 5; gridClass = 'grid-3x5';
-                } else { 
-                    imagesPerPage = 16; columns = 4; rows = 4; gridClass = 'grid-4x4';
-                }
+                const { imagesPerPage, columns } = getGridSpec(count);
 
                 const totalPages = Math.ceil(count / imagesPerPage);
                 imageCountText.textContent = `${count} adet fotoğraf seçildi. ${totalPages} sayfa yazdırılacak.`;
@@ -782,16 +745,7 @@
                 printPreviewGrid.innerHTML = '';
                 if (count > 0) {
                     // Önizlemede sadece ilk sayfadaki görselleri göster
-                    let imagesPerPage;
-                    if (count === 1) imagesPerPage = 1;
-                    else if (count === 2) imagesPerPage = 2;
-                    else if (count === 3) imagesPerPage = 3;
-                    else if (count === 4) imagesPerPage = 4;
-                    else if (count <= 6) imagesPerPage = 6;
-                    else if (count <= 9) imagesPerPage = 9;
-                    else if (count <= 12) imagesPerPage = 12;
-                    else if (count <= 15) imagesPerPage = 15;
-                    else imagesPerPage = 16;
+                    const { imagesPerPage } = getGridSpec(count);
                     
                     const previewCount = Math.min(count, imagesPerPage);
                     for (let i = 0; i < previewCount; i++) {
@@ -903,17 +857,7 @@
                 if (loadedImages.length === 0) return null;
 
                 const count = loadedImages.length;
-                let columns, rows;
-                
-                if (count === 1) { columns = 1; rows = 1; }
-                else if (count === 2) { columns = 1; rows = 2; }
-                else if (count === 3) { columns = 1; rows = 3; }
-                else if (count === 4) { columns = 2; rows = 2; }
-                else if (count <= 6) { columns = 2; rows = 3; }
-                else if (count <= 9) { columns = 3; rows = 3; }
-                else if (count <= 12) { columns = 3; rows = 4; }
-                else if (count <= 15) { columns = 3; rows = 5; }
-                else { columns = 4; rows = Math.ceil(count / 4); }
+                const { columns, rows, imagesPerPage } = getGridSpec(count);
 
                 // A4 oranında canvas oluştur (300 DPI için yüksek çözünürlük)
                 const canvasWidth = 2480; // A4 width at 300 DPI
@@ -938,7 +882,7 @@
                 const cellHeight = (availableHeight - (rows - 1) * padding) / rows;
 
                 // Görselleri yerleştir
-                for (let i = 0; i < loadedImages.length; i++) {
+                for (let i = 0; i < Math.min(loadedImages.length, imagesPerPage); i++) {
                     const img = loadedImages[i];
                     const row = Math.floor(i / columns);
                     const col = i % columns;
@@ -974,6 +918,25 @@
                 if (!catalogHtml) {
                     alert('Yazdırılacak fotoğraf bulunamadı. Lütfen fotoğraf seçin.');
                     return;
+                }
+
+                // Android'de URL header'ını engellemek için paylaş/print akışı
+                if (isAndroid && navigator.share && navigator.canShare) {
+                    try {
+                        const pageBlobs = await createPageCanvases();
+                        if (pageBlobs.length === 0) throw new Error('Paylaşılacak sayfa bulunamadı');
+                        const files = pageBlobs.map((blob, idx) => new File([blob], `katalog-sayfa-${idx + 1}.jpeg`, { type: 'image/jpeg' }));
+                        if (navigator.canShare({ files })) {
+                            await navigator.share({
+                                title: 'Katalog Yazdır',
+                                text: 'A4 çıktı',
+                                files,
+                            });
+                            return;
+                        }
+                    } catch (err) {
+                        console.warn('Paylaşım akışı başarısız, iframe yazdırmaya düşülüyor.', err);
+                    }
                 }
 
                 const oldFrame = document.getElementById('print-frame');
@@ -1037,6 +1000,73 @@
                         setTimeout(() => iframe.remove(), 1000);
                     }
                 };
+            }
+
+            async function createPageCanvases() {
+                if (!loadedImages.length) return [];
+
+                const count = loadedImages.length;
+                const { imagesPerPage, columns, rows } = getGridSpec(count);
+                const totalPages = Math.ceil(count / imagesPerPage);
+                const margin = 30;
+                const gap = 8;
+                const canvasWidth = 2480;
+                const canvasHeight = 3508;
+                const availableWidth = canvasWidth - (2 * margin);
+                const availableHeight = canvasHeight - (2 * margin);
+
+                const blobs = [];
+
+                for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+                    const startIndex = pageIndex * imagesPerPage;
+                    const endIndex = Math.min(startIndex + imagesPerPage, count);
+                    const imagesInThisPage = endIndex - startIndex;
+                    const { columns: pageCols, rows: pageRows } = getGridSpec(imagesInThisPage);
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = canvasWidth;
+                    canvas.height = canvasHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                    const cellWidth = (availableWidth - (pageCols - 1) * gap) / pageCols;
+                    const cellHeight = (availableHeight - (pageRows - 1) * gap) / pageRows;
+
+                    for (let i = startIndex; i < endIndex; i++) {
+                        const img = loadedImages[i];
+                        const localIndex = i - startIndex;
+                        const row = Math.floor(localIndex / pageCols);
+                        const col = localIndex % pageCols;
+
+                        const x = margin + col * (cellWidth + gap);
+                        const y = margin + row * (cellHeight + gap);
+
+                        const aspectRatio = img.width / img.height;
+                        let drawWidth = cellWidth;
+                        let drawHeight = cellHeight;
+
+                        if (aspectRatio > cellWidth / cellHeight) {
+                            drawHeight = cellWidth / aspectRatio;
+                        } else {
+                            drawWidth = cellHeight * aspectRatio;
+                        }
+
+                        const offsetX = (cellWidth - drawWidth) / 2;
+                        const offsetY = (cellHeight - drawHeight) / 2;
+
+                        ctx.strokeStyle = '#ddd';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(x + offsetX - 2, y + offsetY - 2, drawWidth + 4, drawHeight + 4);
+                        ctx.drawImage(img, x + offsetX, y + offsetY, drawWidth, drawHeight);
+                    }
+
+                    // eslint-disable-next-line no-await-in-loop
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+                    if (blob) blobs.push(blob);
+                }
+
+                return blobs;
             }
 
             async function createSVGFromCanvas() {
@@ -1171,19 +1201,24 @@
                     }, {passive: true});
                 });
 
+                // Mobil yazdırma için özel ayarlar
                 window.addEventListener('beforeprint', () => {
+                    // Yazdırma öncesi son ayarlamalar
                     document.body.style.overflow = 'hidden';
                     document.body.style.margin = '0';
                     document.body.style.padding = '0';
                     document.documentElement.style.overflow = 'hidden';
 
+                    // Ölçeklendirme sorununu çözmek için ölçeği %99 olarak ayarla
                     document.body.style.transform = 'scale(0.99)';
                     document.body.style.transformOrigin = 'top left';
 
+                    // Scroll pozisyonunu sıfırla
                     window.scrollTo(0, 0);
                 });
 
                 window.addEventListener('afterprint', () => {
+                    // Yazdırma sonrası temizlik
                     document.body.style.overflow = '';
                     document.documentElement.style.overflow = '';
                     document.body.style.transform = '';
@@ -1191,6 +1226,7 @@
                 });
             }
 
+            // Başlangıç durumu
             clearAll();
         });
     </script>
